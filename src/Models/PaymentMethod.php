@@ -6,22 +6,22 @@ namespace App\Models;
 
 use PDO;
 
-final class CourseType
+final class PaymentMethod
 {
     public function __construct(private readonly PDO $pdo)
     {
     }
 
-    public function all(): array
+    public function active(): array
     {
         return $this->pdo
-            ->query('SELECT id, title, description, duration_hours FROM course_types WHERE is_active = 1 ORDER BY title')
+            ->query('SELECT id, title, description FROM payment_methods WHERE is_active = 1 ORDER BY title')
             ->fetchAll();
     }
 
     public function exists(int $id): bool
     {
-        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM course_types WHERE id = :id AND is_active = 1');
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM payment_methods WHERE id = :id AND is_active = 1');
         $stmt->execute(['id' => $id]);
 
         return (int) $stmt->fetchColumn() > 0;

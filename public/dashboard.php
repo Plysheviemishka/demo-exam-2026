@@ -5,7 +5,9 @@ use App\Database;
 use App\Models\Application;
 
 $user = require_user();
-$applications = (new Application(Database::connection()))->forUser((int) $user['id']);
+$applicationModel = new Application(Database::connection());
+$applications = $applicationModel->forUser((int) $user['id']);
+$metrics = $applicationModel->dashboardMetrics((int) $user['id']);
 $title = 'Личный кабинет — Учусь.РФ';
 require __DIR__ . '/partials_header.php';
 ?>
@@ -16,6 +18,15 @@ require __DIR__ . '/partials_header.php';
         <p>История заявок, актуальные статусы обучения и отзывы о завершенных услугах.</p>
     </div>
     <a class="button" href="/apply.php">Оформить заявку</a>
+</section>
+
+<section class="stats-grid stats-grid--user" aria-label="Статистика личных заявок">
+    <?php foreach ($metrics as $statusName => $count): ?>
+        <article class="stat-card stat-card--compact">
+            <span class="status status--<?= e(match ($statusName) { 'Новая' => 'new', 'Идет обучение' => 'progress', default => 'done' }) ?>"><?= e($statusName) ?></span>
+            <strong><?= (int) $count ?></strong>
+        </article>
+    <?php endforeach; ?>
 </section>
 
 <section class="slider card animate-in" aria-label="Преимущества портала Учусь.РФ">
@@ -51,6 +62,7 @@ require __DIR__ . '/partials_header.php';
     <div class="card-head">
         <div>
             <h2>Мои заявки</h2>
+            <p class="muted">Карточки адаптированы для экрана смартфона 390×844.</p>
         </div>
         <span class="badge"><?= count($applications) ?> заявок</span>
     </div>
@@ -71,7 +83,12 @@ require __DIR__ . '/partials_header.php';
                     <dl class="meta-grid">
                         <div><dt>Дата старта</dt><dd><?= e(date('d.m.Y', strtotime($application['start_date']))) ?></dd></div>
                         <div><dt>Оплата</dt><dd><?= e($application['payment_method']) ?></dd></div>
+                        <div><dt>Длительность</dt><dd><?= (int) $application['duration_hours'] ?> ч.</dd></div>
+                        <div><dt>Создана</dt><dd><?= e(date('d.m.Y H:i', strtotime($application['created_at']))) ?></dd></div>
                     </dl>
+                    <?php if (!empty($application['comment'])): ?>
+                        <div class="note-box">Комментарий: <?= e($application['comment']) ?></div>
+                    <?php endif; ?>
                     <div class="review-box">
                         <?php if ($application['review_text']): ?>
                             <strong>Отзыв: <?= (int) $application['rating'] ?>/5</strong>

@@ -3,6 +3,7 @@ require __DIR__ . '/../src/Support/bootstrap.php';
 
 use App\Database;
 use App\Models\Application;
+use App\Models\PaymentMethod;
 
 require_admin();
 $appModel = new Application(Database::connection());
@@ -10,7 +11,7 @@ $appModel = new Application(Database::connection());
 $filters = [
     'q' => trim((string) ($_GET['q'] ?? '')),
     'status' => (string) ($_GET['status'] ?? ''),
-    'payment' => (string) ($_GET['payment'] ?? ''),
+    'payment_method_id' => (string) ($_GET['payment_method_id'] ?? ''),
     'date_from' => (string) ($_GET['date_from'] ?? ''),
     'date_to' => (string) ($_GET['date_to'] ?? ''),
 ];
@@ -23,7 +24,7 @@ $totalPages = max(1, (int) ceil($total / $perPage));
 $page = min($page, $totalPages);
 $applications = $appModel->allFiltered($filters, $page, $perPage, $sort, $direction);
 $stats = $appModel->statistics();
-$payments = ['Банковская карта', 'СБП', 'Счет для организации'];
+$payments = (new PaymentMethod(Database::connection()))->active();
 
 function admin_query(array $overrides = []): string
 {
@@ -80,11 +81,11 @@ require __DIR__ . '/partials_header.php';
             </select>
         </div>
         <div class="form__group">
-            <label for="payment">Оплата</label>
-            <select id="payment" name="payment">
+            <label for="payment_method_id">Оплата</label>
+            <select id="payment_method_id" name="payment_method_id">
                 <option value="">Любая оплата</option>
                 <?php foreach ($payments as $payment): ?>
-                    <option value="<?= e($payment) ?>" <?= $filters['payment'] === $payment ? 'selected' : '' ?>><?= e($payment) ?></option>
+                    <option value="<?= (int) $payment['id'] ?>" <?= (string) $filters['payment_method_id'] === (string) $payment['id'] ? 'selected' : '' ?>><?= e($payment['title']) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
@@ -107,7 +108,7 @@ require __DIR__ . '/partials_header.php';
     <div class="card-head">
         <div>
             <h2>Все заявки</h2>
-            <p class="muted">Найдено: <?= (int) $total ?>. Страница <?= (int) $page ?> из <?= (int) $totalPages ?>.</p>
+            <p class="muted">Найдено: <?= (int) $total ?>. Страница <?= (int) $page ?> из <?= (int) $totalPages ?>. Данные выбираются через нормализованные справочники статусов и способов оплаты.</p>
         </div>
     </div>
     <?php if (!$applications): ?>
@@ -122,7 +123,7 @@ require __DIR__ . '/partials_header.php';
                     <th>Контакты</th>
                     <th><?= sort_link('course', 'Курс', $sort, $direction) ?></th>
                     <th><?= sort_link('date', 'Дата старта', $sort, $direction) ?></th>
-                    <th>Оплата</th>
+                    <th><?= sort_link('payment', 'Оплата', $sort, $direction) ?></th>
                     <th><?= sort_link('status', 'Статус', $sort, $direction) ?></th>
                     <th>Действие</th>
                 </tr>

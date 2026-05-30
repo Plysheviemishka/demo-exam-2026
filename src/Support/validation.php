@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Database;
 use App\Models\User;
+use App\Models\CourseType;
+use App\Models\PaymentMethod;
 
 function validate_registration(array $data): array
 {
@@ -45,21 +47,23 @@ function validate_registration(array $data): array
 function validate_application(array $data): array
 {
     $errors = [];
+    $pdo = Database::connection();
     $courseTypeId = (int) ($data['course_type_id'] ?? 0);
+    $paymentMethodId = (int) ($data['payment_method_id'] ?? 0);
     $startDate = normalize_date_to_sql((string) ($data['start_date'] ?? ''));
-    $paymentMethod = (string) ($data['payment_method'] ?? '');
-    $allowedPayment = ['Банковская карта', 'СБП', 'Счет для организации'];
 
-    if ($courseTypeId <= 0) {
+    if ($courseTypeId <= 0 || !(new CourseType($pdo))->exists($courseTypeId)) {
         $errors['course_type_id'] = 'Выберите вид курса из раскрывающегося списка.';
     }
 
     if ($startDate === null) {
         $errors['start_date'] = 'Укажите дату начала обучения в формате ДД.ММ.ГГГГ.';
+    } elseif (strtotime($startDate) < strtotime(date('Y-m-d'))) {
+        $errors['start_date'] = 'Дата начала обучения не может быть в прошлом.';
     }
 
-    if (!in_array($paymentMethod, $allowedPayment, true)) {
-        $errors['payment_method'] = 'Выберите способ оплаты из списка.';
+    if ($paymentMethodId <= 0 || !(new PaymentMethod($pdo))->exists($paymentMethodId)) {
+        $errors['payment_method_id'] = 'Выберите способ оплаты из списка.';
     }
 
     return $errors;
