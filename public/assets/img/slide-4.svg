@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360" role="img" aria-label="Слайд Учусь.РФ 4">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2457d6"/>
+      <stop offset="0.55" stop-color="#6d8dff"/>
+      <stop offset="1" stop-color="#ffbd59"/>
+    </linearGradient>
+    <filter id="s" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#102461" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <rect width="720" height="360" rx="32" fill="url(#g)"/>
+  <circle cx="610" cy="70" r="82" fill="#ffffff" opacity="0.16"/>
+  <circle cx="115" cy="300" r="105" fill="#ffffff" opacity="0.13"/>
+  <rect x="96" y="76" width="270" height="208" rx="24" fill="#ffffff" opacity="0.96" filter="url(#s)"/>
+  <rect x="128" y="112" width="136" height="16" rx="8" fill="#2457d6" opacity="0.90"/>
+  <rect x="128" y="148" width="200" height="12" rx="6" fill="#d7e0f0"/>
+  <rect x="128" y="176" width="174" height="12" rx="6" fill="#d7e0f0"/>
+  <rect x="128" y="216" width="118" height="40" rx="14" fill="#ffbd59"/>
+  <g transform="translate(438 94)">
+    <rect width="144" height="144" rx="34" fill="#ffffff" opacity="0.92"/>
+    <path d="M42 94h60M42 72h60M42 50h60" stroke="#2457d6" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="112" cy="112" r="28" fill="#ffbd59"/>
+    <path d="M101 112l8 8 17-22" fill="none" stroke="#102461" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="96" y="332" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#ffffff">Учусь.РФ — онлайн-заявки на обучение</text>
+</svg>

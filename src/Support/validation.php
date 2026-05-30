@@ -46,22 +46,46 @@ function validate_application(array $data): array
 {
     $errors = [];
     $courseTypeId = (int) ($data['course_type_id'] ?? 0);
-    $startDate = (string) ($data['start_date'] ?? '');
+    $startDate = normalize_date_to_sql((string) ($data['start_date'] ?? ''));
     $paymentMethod = (string) ($data['payment_method'] ?? '');
     $allowedPayment = ['Банковская карта', 'СБП', 'Счет для организации'];
 
     if ($courseTypeId <= 0) {
-        $errors['course_type_id'] = 'Выберите вид курса.';
+        $errors['course_type_id'] = 'Выберите вид курса из раскрывающегося списка.';
     }
 
-    $date = DateTime::createFromFormat('Y-m-d', $startDate);
-    if (!$date || $date->format('Y-m-d') !== $startDate) {
-        $errors['start_date'] = 'Укажите дату начала обучения.';
+    if ($startDate === null) {
+        $errors['start_date'] = 'Укажите дату начала обучения в формате ДД.ММ.ГГГГ.';
     }
 
     if (!in_array($paymentMethod, $allowedPayment, true)) {
-        $errors['payment_method'] = 'Выберите способ оплаты.';
+        $errors['payment_method'] = 'Выберите способ оплаты из списка.';
     }
 
     return $errors;
+}
+
+function normalize_date_to_sql(string $value): ?string
+{
+    $value = trim($value);
+    $formats = ['d.m.Y', 'Y-m-d'];
+
+    foreach ($formats as $format) {
+        $date = DateTime::createFromFormat($format, $value);
+        if ($date && $date->format($format) === $value) {
+            return $date->format('Y-m-d');
+        }
+    }
+
+    return null;
+}
+
+function format_date_for_form(string $value): string
+{
+    $sqlDate = normalize_date_to_sql($value);
+    if ($sqlDate === null) {
+        return $value;
+    }
+
+    return date('d.m.Y', strtotime($sqlDate));
 }

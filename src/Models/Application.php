@@ -18,6 +18,15 @@ final class Application
         self::STATUS_DONE,
     ];
 
+    public const SORT_MAP = [
+        'id' => 'a.id',
+        'user' => 'u.full_name',
+        'course' => 'c.title',
+        'date' => 'a.start_date',
+        'status' => 'a.status',
+        'created' => 'a.created_at',
+    ];
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -57,15 +66,59 @@ final class Application
 
     public function all(): array
     {
-        $stmt = $this->pdo->query(
-            'SELECT a.*, c.title AS course_title, u.login, u.full_name, u.phone, u.email
+        return $this->allFiltered([], 1, 1000, 'created', 'desc');
+    }
+
+    public function allFiltered(array $filters, int $page = 1, int $perPage = 6, string $sort = 'created', string $direction = 'desc'): array
+    {
+        [$where, $params] = $this->buildFilterSql($filters);
+        $sortColumn = self::SORT_MAP[$sort] ?? self::SORT_MAP['created'];
+        $direction = strtolower($direction) === 'asc' ? 'ASC' : 'DESC';
+        $offset = max(0, ($page - 1) * $perPage);
+
+        $sql = "SELECT a.*, c.title AS course_title, u.login, u.full_name, u.phone, u.email
+                FROM applications a
+                INNER JOIN course_types c ON c.id = a.course_type_id
+                INNER JOIN users u ON u.id = a.user_id
+                {$where}
+                ORDER BY {$sortColumn} {$direction}, a.id DESC
+                LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->pdo->prepare($sql);
+        foreach ($params as $name => $value) {
+            $stmt->bindValue($name, $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    public function countFiltered(array $filters): int
+    {
+        [$where, $params] = $this->buildFilterSql($filters);
+        $stmt = $this->pdo->prepare(
+            "SELECT COUNT(*)
              FROM applications a
              INNER JOIN course_types c ON c.id = a.course_type_id
              INNER JOIN users u ON u.id = a.user_id
-             ORDER BY a.created_at DESC'
+             {$where}"
         );
+        $stmt->execute($params);
 
-        return $stmt->fetchAll();
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function statistics(): array
+    {
+        $stmt = $this->pdo->query('SELECT status, COUNT(*) AS total FROM applications GROUP BY status');
+        $stats = array_fill_keys(self::ALLOWED_STATUSES, 0);
+        foreach ($stmt->fetchAll() as $row) {
+            $stats[$row['status']] = (int) $row['total'];
+        }
+
+        return $stats;
     }
 
     public function find(int $id): ?array
@@ -91,5 +144,43 @@ final class Application
 
         $stmt = $this->pdo->prepare('UPDATE applications SET status = :status WHERE id = :id');
         return $stmt->execute(['id' => $id, 'status' => $status]);
+    }
+
+    private function buildFilterSql(array $filters): array
+    {
+        $conditions = [];
+        $params = [];
+
+        $query = trim((string) ($filters['q'] ?? ''));
+        if ($query !== '') {
+            $conditions[] = '(u.full_name LIKE :q OR u.login LIKE :q OR u.phone LIKE :q OR u.email LIKE :q OR c.title LIKE :q)';
+            $params[':q'] = '%' . $query . '%';
+        }
+
+        $status = (string) ($filters['status'] ?? '');
+        if ($status !== '' && in_array($status, self::ALLOWED_STATUSES, true)) {
+            $conditions[] = 'a.status = :status';
+            $params[':status'] = $status;
+        }
+
+        $payment = (string) ($filters['payment'] ?? '');
+        if ($payment !== '') {
+            $conditions[] = 'a.payment_method = :payment';
+            $params[':payment'] = $payment;
+        }
+
+        $dateFrom = (string) ($filters['date_from'] ?? '');
+        if ($dateFrom !== '') {
+            $conditions[] = 'a.start_date >= :date_from';
+            $params[':date_from'] = $dateFrom;
+        }
+
+        $dateTo = (string) ($filters['date_to'] ?? '');
+        if ($dateTo !== '') {
+            $conditions[] = 'a.start_date <= :date_to';
+            $params[':date_to'] = $dateTo;
+        }
+
+        return [$conditions ? 'WHERE ' . implode(' AND ', $conditions) : '', $params];
     }
 }
